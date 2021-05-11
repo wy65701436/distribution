@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/docker/distribution"
+	"github.com/distribution/distribution/v3"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -110,6 +110,18 @@ func TestManifestList(t *testing.T) {
 		t.Fatalf("unexpected number of references: %d", len(references))
 	}
 	for i := range references {
+		platform := manifestDescriptors[i].Platform
+		expectedPlatform := &v1.Platform{
+			Architecture: platform.Architecture,
+			OS:           platform.OS,
+			OSFeatures:   platform.OSFeatures,
+			OSVersion:    platform.OSVersion,
+			Variant:      platform.Variant,
+		}
+		if !reflect.DeepEqual(references[i].Platform, expectedPlatform) {
+			t.Fatalf("unexpected value %d returned by References: %v", i, references[i])
+		}
+		references[i].Platform = nil
 		if !reflect.DeepEqual(references[i], manifestDescriptors[i].Descriptor) {
 			t.Fatalf("unexpected value %d returned by References: %v", i, references[i])
 		}
@@ -119,7 +131,7 @@ func TestManifestList(t *testing.T) {
 // TODO (mikebrow): add annotations on the manifest list (index) and support for
 // empty platform structs (move to Platform *Platform `json:"platform,omitempty"`
 // from current Platform PlatformSpec `json:"platform"`) in the manifest descriptor.
-// Requires changes to docker/distribution/manifest/manifestlist.ManifestList and .ManifestDescriptor
+// Requires changes to distribution/distribution/manifest/manifestlist.ManifestList and .ManifestDescriptor
 // and associated serialization APIs in manifestlist.go. Or split the OCI index and
 // docker manifest list implementations, which would require a lot of refactoring.
 var expectedOCIImageIndexSerialization = []byte(`{
@@ -247,6 +259,18 @@ func TestOCIImageIndex(t *testing.T) {
 		t.Fatalf("unexpected number of references: %d", len(references))
 	}
 	for i := range references {
+		platform := manifestDescriptors[i].Platform
+		expectedPlatform := &v1.Platform{
+			Architecture: platform.Architecture,
+			OS:           platform.OS,
+			OSFeatures:   platform.OSFeatures,
+			OSVersion:    platform.OSVersion,
+			Variant:      platform.Variant,
+		}
+		if !reflect.DeepEqual(references[i].Platform, expectedPlatform) {
+			t.Fatalf("unexpected value %d returned by References: %v", i, references[i])
+		}
+		references[i].Platform = nil
 		if !reflect.DeepEqual(references[i], manifestDescriptors[i].Descriptor) {
 			t.Fatalf("unexpected value %d returned by References: %v", i, references[i])
 		}

@@ -2,6 +2,8 @@
 title: "HTTP API V2"
 description: "Specification for the Registry API."
 keywords: registry, on-prem, images, tags, repository, distribution, api, advanced
+redirect_from:
+  - /reference/api/registry_api/
 ---
 
 # Docker Registry HTTP API V2
@@ -332,7 +334,7 @@ digest. The _hex_ portion is the hex-encoded result of the hash.
 We define a _digest_ string to match the following grammar:
 ```
 digest      := algorithm ":" hex
-algorithm   := /[A-Fa-f0-9_+.-]+/
+algorithm   := /[A-Za-z0-9_+.-]+/
 hex         := /[A-Fa-f0-9]+/
 ```
 

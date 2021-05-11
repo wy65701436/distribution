@@ -11,9 +11,9 @@ import (
 	"path"
 	"time"
 
-	storagedriver "github.com/docker/distribution/registry/storage/driver"
-	"github.com/docker/distribution/registry/storage/driver/base"
-	"github.com/docker/distribution/registry/storage/driver/factory"
+	storagedriver "github.com/distribution/distribution/v3/registry/storage/driver"
+	"github.com/distribution/distribution/v3/registry/storage/driver/base"
+	"github.com/distribution/distribution/v3/registry/storage/driver/factory"
 )
 
 const (
@@ -260,7 +260,7 @@ func (d *driver) Move(ctx context.Context, sourcePath string, destPath string) e
 		return storagedriver.PathNotFoundError{Path: sourcePath}
 	}
 
-	if err := os.MkdirAll(path.Dir(dest), 0755); err != nil {
+	if err := os.MkdirAll(path.Dir(dest), 0777); err != nil {
 		return err
 	}
 

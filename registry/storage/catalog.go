@@ -7,8 +7,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/docker/distribution/reference"
-	"github.com/docker/distribution/registry/storage/driver"
+	"github.com/distribution/distribution/v3/reference"
+	"github.com/distribution/distribution/v3/registry/storage/driver"
 )
 
 // Returns a list, or partial list, of repositories in the registry.
@@ -143,8 +143,8 @@ func handleRepository(fileInfo driver.FileInfo, root, last string, fn func(repoP
 	repo := filePath[len(root)+1:]
 
 	_, file := path.Split(repo)
-	if file == "_layers" {
-		repo = strings.TrimSuffix(repo, "/_layers")
+	if file == "_manifests" {
+		repo = strings.TrimSuffix(repo, "/_manifests")
 		if lessPath(last, repo) {
 			if err := fn(repo); err != nil {
 				return err

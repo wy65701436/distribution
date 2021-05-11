@@ -31,9 +31,9 @@ import (
 	"strings"
 	"time"
 
-	storagedriver "github.com/docker/distribution/registry/storage/driver"
-	"github.com/docker/distribution/registry/storage/driver/base"
-	"github.com/docker/distribution/registry/storage/driver/factory"
+	storagedriver "github.com/distribution/distribution/v3/registry/storage/driver"
+	"github.com/distribution/distribution/v3/registry/storage/driver/base"
+	"github.com/distribution/distribution/v3/registry/storage/driver/factory"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -426,7 +426,8 @@ func putContentsClose(wc *storage.Writer, contents []byte) error {
 	var nn int
 	var err error
 	for nn < size {
-		n, err := wc.Write(contents[nn:size])
+		var n int
+		n, err = wc.Write(contents[nn:size])
 		nn += n
 		if err != nil {
 			break

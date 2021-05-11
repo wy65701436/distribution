@@ -29,18 +29,16 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
-	"github.com/aws/aws-sdk-go/aws/ec2metadata"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 
-	dcontext "github.com/docker/distribution/context"
-	"github.com/docker/distribution/registry/client/transport"
-	storagedriver "github.com/docker/distribution/registry/storage/driver"
-	"github.com/docker/distribution/registry/storage/driver/base"
-	"github.com/docker/distribution/registry/storage/driver/factory"
+	dcontext "github.com/distribution/distribution/v3/context"
+	"github.com/distribution/distribution/v3/registry/client/transport"
+	storagedriver "github.com/distribution/distribution/v3/registry/storage/driver"
+	"github.com/distribution/distribution/v3/registry/storage/driver/base"
+	"github.com/distribution/distribution/v3/registry/storage/driver/factory"
 )
 
 const driverName = "s3aws"
@@ -405,29 +403,21 @@ func New(params DriverParameters) (*Driver, error) {
 	}
 
 	awsConfig := aws.NewConfig()
-	sess, err := session.NewSession()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create new session: %v", err)
+
+	if params.AccessKey != "" && params.SecretKey != "" {
+		creds := credentials.NewStaticCredentials(
+			params.AccessKey,
+			params.SecretKey,
+			params.SessionToken,
+		)
+		awsConfig.WithCredentials(creds)
 	}
-	creds := credentials.NewChainCredentials([]credentials.Provider{
-		&credentials.StaticProvider{
-			Value: credentials.Value{
-				AccessKeyID:     params.AccessKey,
-				SecretAccessKey: params.SecretKey,
-				SessionToken:    params.SessionToken,
-			},
-		},
-		&credentials.EnvProvider{},
-		&credentials.SharedCredentialsProvider{},
-		&ec2rolecreds.EC2RoleProvider{Client: ec2metadata.New(sess)},
-	})
 
 	if params.RegionEndpoint != "" {
 		awsConfig.WithS3ForcePathStyle(true)
 		awsConfig.WithEndpoint(params.RegionEndpoint)
 	}
 
-	awsConfig.WithCredentials(creds)
 	awsConfig.WithRegion(params.Region)
 	awsConfig.WithDisableSSL(!params.Secure)
 
@@ -449,7 +439,7 @@ func New(params DriverParameters) (*Driver, error) {
 		}
 	}
 
-	sess, err = session.NewSession(awsConfig)
+	sess, err := session.NewSession(awsConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new session with aws config: %v", err)
 	}
@@ -549,9 +539,9 @@ func (d *driver) Reader(ctx context.Context, path string, offset int64) (io.Read
 
 // Writer returns a FileWriter which will store the content written to it
 // at the location designated by "path" after the call to Commit.
-func (d *driver) Writer(ctx context.Context, path string, append bool) (storagedriver.FileWriter, error) {
+func (d *driver) Writer(ctx context.Context, path string, appendParam bool) (storagedriver.FileWriter, error) {
 	key := d.s3Path(path)
-	if !append {
+	if !appendParam {
 		// TODO (brianbland): cancel other uploads at this path
 		resp, err := d.S3.CreateMultipartUpload(&s3.CreateMultipartUploadInput{
 			Bucket:               aws.String(d.Bucket),
@@ -574,7 +564,7 @@ func (d *driver) Writer(ctx context.Context, path string, append bool) (storaged
 	if err != nil {
 		return nil, parseError(path, err)
 	}
-
+	var allParts []*s3.Part
 	for _, multi := range resp.Uploads {
 		if key != *multi.Key {
 			continue
@@ -587,11 +577,20 @@ func (d *driver) Writer(ctx context.Context, path string, append bool) (storaged
 		if err != nil {
 			return nil, parseError(path, err)
 		}
-		var multiSize int64
-		for _, part := range resp.Parts {
-			multiSize += *part.Size
+		allParts = append(allParts, resp.Parts...)
+		for *resp.IsTruncated {
+			resp, err = d.S3.ListParts(&s3.ListPartsInput{
+				Bucket:           aws.String(d.Bucket),
+				Key:              aws.String(key),
+				UploadId:         multi.UploadId,
+				PartNumberMarker: resp.NextPartNumberMarker,
+			})
+			if err != nil {
+				return nil, parseError(path, err)
+			}
+			allParts = append(allParts, resp.Parts...)
 		}
-		return d.newWriter(key, *multi.UploadId, resp.Parts), nil
+		return d.newWriter(key, *multi.UploadId, allParts), nil
 	}
 	return nil, storagedriver.PathNotFoundError{Path: path}
 }
@@ -996,6 +995,11 @@ func (d *driver) doWalk(parentCtx context.Context, objectCount *int64, path, pre
 		}
 
 		for _, file := range objects.Contents {
+			// empty prefixes are listed as objects inside its own prefix.
+			// https://docs.aws.amazon.com/AmazonS3/latest/user-guide/using-folders.html
+			if strings.HasSuffix(*file.Key, "/") {
+				continue
+			}
 			walkInfos = append(walkInfos, walkInfoContainer{
 				FileInfoFields: storagedriver.FileInfoFields{
 					IsDir:   false,

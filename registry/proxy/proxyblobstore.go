@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/docker/distribution"
-	dcontext "github.com/docker/distribution/context"
-	"github.com/docker/distribution/reference"
-	"github.com/docker/distribution/registry/proxy/scheduler"
+	"github.com/distribution/distribution/v3"
+	dcontext "github.com/distribution/distribution/v3/context"
+	"github.com/distribution/distribution/v3/reference"
+	"github.com/distribution/distribution/v3/registry/proxy/scheduler"
 	"github.com/opencontainers/go-digest"
 )
 
@@ -72,13 +72,8 @@ func (pbs *proxyBlobStore) serveLocal(ctx context.Context, w http.ResponseWriter
 		return false, nil
 	}
 
-	if err == nil {
-		proxyMetrics.BlobPush(uint64(localDesc.Size))
-		return true, pbs.localStore.ServeBlob(ctx, w, r, dgst)
-	}
-
-	return false, nil
-
+	proxyMetrics.BlobPush(uint64(localDesc.Size))
+	return true, pbs.localStore.ServeBlob(ctx, w, r, dgst)
 }
 
 func (pbs *proxyBlobStore) storeLocal(ctx context.Context, dgst digest.Digest) error {
