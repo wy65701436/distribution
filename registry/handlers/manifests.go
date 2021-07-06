@@ -50,6 +50,9 @@ func manifestDispatcher(ctx *Context, r *http.Request) http.Handler {
 		Context: ctx,
 	}
 	reference := getReference(ctx)
+	fmt.Println("============")
+	fmt.Println(reference)
+	fmt.Println("============")
 	dgst, err := digest.Parse(reference)
 	if err != nil {
 		// We just have a tag
