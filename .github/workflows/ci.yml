@@ -36,6 +36,9 @@ jobs:
     - name: Build
       working-directory: ./src/github.com/docker/distribution
       run: |
+        go env
+        echo ${{ github.workspace }}
+        pwd
         GO111MODULE=on script/setup/install-dev-tools
         script/validate/vendor
         go build .
