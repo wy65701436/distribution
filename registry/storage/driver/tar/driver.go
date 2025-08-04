@@ -33,6 +33,7 @@ const (
 type DriverParameters struct {
 	RootDirectory string
 	MaxThreads    uint64
+	TarPath       string
 }
 
 func init() {
@@ -48,10 +49,7 @@ func (factory *tarDriverFactory) Create(ctx context.Context, parameters map[stri
 
 type driver struct {
 	rootDirectory string
-	manifestMap   map[string][]byte
-	blobDir       string
-	tarPatch      string
-	tarReader     imagetar.TarReader
+	tarPath       string
 }
 
 type baseEmbed struct {
@@ -68,6 +66,7 @@ type Driver struct {
 // Optional Parameters:
 // - rootdirectory
 // - maxthreads
+// - tarPath
 func FromParameters(parameters map[string]interface{}) (*Driver, error) {
 	params, err := fromParametersImpl(parameters)
 	if err != nil || params == nil {
@@ -81,6 +80,7 @@ func fromParametersImpl(parameters map[string]interface{}) (*DriverParameters, e
 		err           error
 		maxThreads    = defaultMaxThreads
 		rootDirectory = defaultRootDirectory
+		tarPath       string
 	)
 
 	if parameters != nil {
@@ -92,11 +92,16 @@ func fromParametersImpl(parameters map[string]interface{}) (*DriverParameters, e
 		if err != nil {
 			return nil, fmt.Errorf("maxthreads config error: %s", err.Error())
 		}
+
+		if tp, ok := parameters["tarpath"]; ok {
+			tarPath = fmt.Sprint(tp)
+		}
 	}
 
 	params := &DriverParameters{
 		RootDirectory: rootDirectory,
 		MaxThreads:    maxThreads,
+		TarPath:       tarPath,
 	}
 	return params, nil
 }
@@ -105,7 +110,7 @@ func fromParametersImpl(parameters map[string]interface{}) (*DriverParameters, e
 func New(params DriverParameters) *Driver {
 	tarDriver := &driver{
 		rootDirectory: params.RootDirectory,
-		tarPatch:      params.RootDirectory + "harbor.tar",
+		tarPath:       params.RootDirectory + params.TarPath,
 	}
 
 	return &Driver{
@@ -125,7 +130,7 @@ func (d *driver) Name() string {
 
 // GetContent retrieves the content stored at "path" as a []byte.
 func (d *driver) GetContent(ctx context.Context, path string) ([]byte, error) {
-	reader := imagetar.NewTarReader(d.tarPatch)
+	reader := imagetar.NewTarReader(d.tarPath)
 	contents, err := reader.Read()
 	if err != nil {
 		return nil, err
@@ -165,15 +170,10 @@ func (d *driver) GetContent(ctx context.Context, path string) ([]byte, error) {
 	return nil, fmt.Errorf("[GetContent] unable to locate the blob: %s", path)
 }
 
-// PutContent stores the []byte content at a location designated by "path".
-func (d *driver) PutContent(ctx context.Context, subPath string, contents []byte) error {
-	return errors.New("readonly driver")
-}
-
 // Reader retrieves an io.ReadCloser for the content stored at "path" with a
 // given byte offset.
 func (d *driver) Reader(ctx context.Context, path string, offset int64) (io.ReadCloser, error) {
-	reader := imagetar.NewTarReader(d.tarPatch)
+	reader := imagetar.NewTarReader(d.tarPath)
 	contents, err := reader.Read()
 	if err != nil {
 		return nil, err
@@ -223,14 +223,10 @@ func (d *driver) Reader(ctx context.Context, path string, offset int64) (io.Read
 	return nil, fmt.Errorf("[Reader] unable to locate the blob:%s", path)
 }
 
-func (d *driver) Writer(ctx context.Context, subPath string, append bool) (storagedriver.FileWriter, error) {
-	return nil, errors.New("unsupported")
-}
-
 // Stat retrieves the FileInfo for the given path, including the current size
 // in bytes and the creation time.
 func (d *driver) Stat(ctx context.Context, subPath string) (storagedriver.FileInfo, error) {
-	reader := imagetar.NewTarReader(d.tarPatch)
+	reader := imagetar.NewTarReader(d.tarPath)
 	contents, err := reader.Read()
 	if err != nil {
 		return nil, err
@@ -280,6 +276,15 @@ func (d *driver) Stat(ctx context.Context, subPath string) (storagedriver.FileIn
 	return nil, fmt.Errorf("[Stat] unable to locate the blob:%s", subPath)
 }
 
+// PutContent stores the []byte content at a location designated by "path".
+func (d *driver) PutContent(ctx context.Context, subPath string, contents []byte) error {
+	return errors.New("readonly driver")
+}
+
+func (d *driver) Writer(ctx context.Context, subPath string, append bool) (storagedriver.FileWriter, error) {
+	return nil, errors.New("readonly driver")
+}
+
 // List returns a list of the objects that are direct descendants of the given
 // path.
 func (d *driver) List(ctx context.Context, subPath string) ([]string, error) {
@@ -305,7 +310,7 @@ func (d *driver) RedirectURL(*http.Request, string) (string, error) {
 // Walk traverses a filesystem defined within driver, starting
 // from the given path, calling f on each file and directory
 func (d *driver) Walk(ctx context.Context, path string, f storagedriver.WalkFn, options ...func(*storagedriver.WalkOptions)) error {
-	return storagedriver.WalkFallback(ctx, d, path, f, options...)
+	return errors.New("readonly driver")
 }
 
 // fullPath returns the absolute path of a key within the Driver's storage.
