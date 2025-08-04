@@ -3,6 +3,7 @@ module github.com/distribution/distribution/v3
 go 1.23.7
 
 require (
+	carvel.dev/imgpkg v0.40.0
 	cloud.google.com/go/storage v1.45.0
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20221103172237-443f56ff4ba8
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.17.1
@@ -41,6 +42,28 @@ require (
 	golang.org/x/sync v0.12.0
 	google.golang.org/api v0.197.0
 	gopkg.in/yaml.v2 v2.4.0
+)
+
+require (
+	github.com/VividCortex/ewma v1.2.0 // indirect
+	github.com/cheggaaa/pb/v3 v3.1.4 // indirect
+	github.com/containerd/stargz-snapshotter/estargz v0.14.3 // indirect
+	github.com/cppforlife/color v1.9.1-0.20200716202919-6706ac40b835 // indirect
+	github.com/cppforlife/go-cli-ui v0.0.0-20220425131040-94f26b16bc14 // indirect
+	github.com/docker/cli v24.0.0+incompatible // indirect
+	github.com/docker/distribution v2.8.2+incompatible // indirect
+	github.com/docker/docker v24.0.7+incompatible // indirect
+	github.com/fatih/color v1.15.0 // indirect
+	github.com/google/go-containerregistry v0.16.1 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mattn/go-runewidth v0.0.14 // indirect
+	github.com/mitchellh/go-homedir v1.1.0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/vbatts/tar-split v0.11.3 // indirect
+	github.com/vito/go-interact v1.0.1 // indirect
+	golang.org/x/term v0.30.0 // indirect
 )
 
 require (

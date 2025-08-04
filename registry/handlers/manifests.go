@@ -139,6 +139,7 @@ func (imh *manifestHandler) GetManifest(w http.ResponseWriter, r *http.Request) 
 		options = append(options, distribution.WithTag(imh.Tag))
 	}
 	manifest, err := manifests.Get(imh, imh.Digest, options...)
+
 	if err != nil {
 		if _, ok := err.(distribution.ErrManifestUnknownRevision); ok {
 			imh.Errors = append(imh.Errors, errcode.ErrorCodeManifestUnknown.WithDetail(err))
