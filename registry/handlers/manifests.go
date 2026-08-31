@@ -127,7 +127,7 @@ func (imh *manifestHandler) GetManifest(w http.ResponseWriter, r *http.Request) 
 			if _, ok := err.(distribution.ErrTagUnknown); ok {
 				imh.Errors = append(imh.Errors, v2.ErrorCodeManifestUnknown.WithDetail(err))
 			} else {
-				imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+				imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to resolve tag '"+imh.Tag+"': "+err.Error()).WithDetail(err))
 			}
 			return
 		}
@@ -148,7 +148,7 @@ func (imh *manifestHandler) GetManifest(w http.ResponseWriter, r *http.Request) 
 		if _, ok := err.(distribution.ErrManifestUnknownRevision); ok {
 			imh.Errors = append(imh.Errors, v2.ErrorCodeManifestUnknown.WithDetail(err))
 		} else {
-			imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+			imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to retrieve manifest: "+err.Error()).WithDetail(err))
 		}
 		return
 	}
@@ -211,7 +211,7 @@ func (imh *manifestHandler) GetManifest(w http.ResponseWriter, r *http.Request) 
 			if _, ok := err.(distribution.ErrManifestUnknownRevision); ok {
 				imh.Errors = append(imh.Errors, v2.ErrorCodeManifestUnknown.WithDetail(err))
 			} else {
-				imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+				imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to retrieve manifest referenced by manifest list: "+err.Error()).WithDetail(err))
 			}
 			return
 		}
@@ -247,7 +247,7 @@ func (imh *manifestHandler) convertSchema2Manifest(schema2Manifest *schema2.Dese
 		if err == distribution.ErrBlobUnknown {
 			imh.Errors = append(imh.Errors, v2.ErrorCodeManifestInvalid.WithDetail(err))
 		} else {
-			imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+			imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to fetch config blob for manifest conversion: "+err.Error()).WithDetail(err))
 		}
 		return nil, err
 	}
@@ -368,14 +368,14 @@ func (imh *manifestHandler) PutManifest(w http.ResponseWriter, r *http.Request) 
 					if verificationError == digest.ErrDigestInvalidFormat {
 						imh.Errors = append(imh.Errors, v2.ErrorCodeDigestInvalid)
 					} else {
-						imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown, verificationError)
+						imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithMessage("manifest verification failed: "+verificationError.Error()).WithDetail(verificationError))
 					}
 				}
 			}
 		case errcode.Error:
 			imh.Errors = append(imh.Errors, err)
 		default:
-			imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+			imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to put manifest to storage: "+err.Error()).WithDetail(err))
 		}
 		return
 	}
@@ -385,7 +385,7 @@ func (imh *manifestHandler) PutManifest(w http.ResponseWriter, r *http.Request) 
 		tags := imh.Repository.Tags(imh)
 		err = tags.Tag(imh, imh.Tag, desc)
 		if err != nil {
-			imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+			imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to tag manifest with '"+imh.Tag+"': "+err.Error()).WithDetail(err))
 			return
 		}
 
@@ -394,7 +394,7 @@ func (imh *manifestHandler) PutManifest(w http.ResponseWriter, r *http.Request) 
 	// Construct a canonical url for the uploaded manifest.
 	ref, err := reference.WithDigest(imh.Repository.Named(), imh.Digest)
 	if err != nil {
-		imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+		imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to construct canonical reference for manifest: "+err.Error()).WithDetail(err))
 		return
 	}
 
@@ -508,7 +508,7 @@ func (imh *manifestHandler) DeleteManifest(w http.ResponseWriter, r *http.Reques
 			imh.Errors = append(imh.Errors, errcode.ErrorCodeUnsupported)
 			return
 		default:
-			imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown)
+			imh.Errors = append(imh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to delete manifest from storage: "+err.Error()).WithDetail(err))
 			return
 		}
 	}

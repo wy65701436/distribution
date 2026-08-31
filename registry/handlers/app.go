@@ -770,7 +770,7 @@ func (app *App) dispatcher(dispatch dispatchFunc) http.Handler {
 			context.Repository, err = applyRepoMiddleware(app, context.Repository, app.Config.Middleware["repository"])
 			if err != nil {
 				dcontext.GetLogger(context).Errorf("error initializing repository middleware: %v", err)
-				context.Errors = append(context.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+				context.Errors = append(context.Errors, errcode.ErrorCodeUnknown.WithMessage("error initializing repository middleware: "+err.Error()).WithDetail(err))
 
 				if err := errcode.ServeJSON(w, context.Errors); err != nil {
 					dcontext.GetLogger(context).Errorf("error serving error json: %v (from %v)", err, context.Errors)

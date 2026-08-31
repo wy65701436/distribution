@@ -74,7 +74,7 @@ func (ch *catalogHandler) GetCatalog(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			_, pathNotFound := err.(driver.PathNotFoundError)
 			if err != io.EOF && !pathNotFound {
-				ch.Errors = append(ch.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+				ch.Errors = append(ch.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to retrieve repositories for catalog: "+err.Error()).WithDetail(err))
 				return
 			}
 			// err is either io.EOF or not PathNotFoundError
@@ -90,7 +90,7 @@ func (ch *catalogHandler) GetCatalog(w http.ResponseWriter, r *http.Request) {
 		lastEntry = repos[filled-1]
 		urlStr, err := createLinkEntry(r.URL.String(), entries, lastEntry)
 		if err != nil {
-			ch.Errors = append(ch.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+			ch.Errors = append(ch.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to create pagination link header for catalog: "+err.Error()).WithDetail(err))
 			return
 		}
 		w.Header().Set("Link", urlStr)
@@ -100,7 +100,7 @@ func (ch *catalogHandler) GetCatalog(w http.ResponseWriter, r *http.Request) {
 	if err := enc.Encode(catalogAPIResponse{
 		Repositories: repos[0:filled],
 	}); err != nil {
-		ch.Errors = append(ch.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+		ch.Errors = append(ch.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to encode catalog response: "+err.Error()).WithDetail(err))
 		return
 	}
 }

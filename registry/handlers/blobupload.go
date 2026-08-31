@@ -70,7 +70,7 @@ func blobUploadDispatcher(ctx *Context, r *http.Request) http.Handler {
 			}
 
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+				buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to resolve blob upload session: "+err.Error()).WithDetail(err))
 			})
 		}
 		buh.Upload = upload
@@ -123,12 +123,12 @@ func (buh *blobUploadHandler) StartBlobUpload(w http.ResponseWriter, r *http.Req
 	if err != nil {
 		if ebm, ok := err.(distribution.ErrBlobMounted); ok {
 			if err := buh.writeBlobCreatedHeaders(w, ebm.Descriptor); err != nil {
-				buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+				buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to write blob created headers: "+err.Error()).WithDetail(err))
 			}
 		} else if err == distribution.ErrUnsupported {
 			buh.Errors = append(buh.Errors, errcode.ErrorCodeUnsupported)
 		} else {
-			buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+			buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to create upload session: "+err.Error()).WithDetail(err))
 		}
 		return
 	}
@@ -136,7 +136,7 @@ func (buh *blobUploadHandler) StartBlobUpload(w http.ResponseWriter, r *http.Req
 	buh.Upload = upload
 
 	if err := buh.blobUploadResponse(w, r, true); err != nil {
-		buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+		buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to construct blob upload response: "+err.Error()).WithDetail(err))
 		return
 	}
 
@@ -155,7 +155,7 @@ func (buh *blobUploadHandler) GetUploadStatus(w http.ResponseWriter, r *http.Req
 	// resumable upload is supported. This will enable returning a non-zero
 	// range for clients to begin uploading at an offset.
 	if err := buh.blobUploadResponse(w, r, true); err != nil {
-		buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+		buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to construct upload status response: "+err.Error()).WithDetail(err))
 		return
 	}
 
@@ -172,7 +172,7 @@ func (buh *blobUploadHandler) PatchBlobData(w http.ResponseWriter, r *http.Reque
 
 	ct := r.Header.Get("Content-Type")
 	if ct != "" && ct != "application/octet-stream" {
-		buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithDetail(fmt.Errorf("bad Content-Type")))
+		buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithMessage("invalid Content-Type header; expected application/octet-stream").WithDetail(fmt.Errorf("bad Content-Type")))
 		// TODO(dmcgowan): encode error
 		return
 	}
@@ -180,12 +180,12 @@ func (buh *blobUploadHandler) PatchBlobData(w http.ResponseWriter, r *http.Reque
 	// TODO(dmcgowan): support Content-Range header to seek and write range
 
 	if err := copyFullPayload(buh, w, r, buh.Upload, -1, "blob PATCH"); err != nil {
-		buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithDetail(err.Error()))
+		buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to write blob PATCH payload: "+err.Error()).WithDetail(err.Error()))
 		return
 	}
 
 	if err := buh.blobUploadResponse(w, r, false); err != nil {
-		buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+		buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to construct blob upload response: "+err.Error()).WithDetail(err))
 		return
 	}
 
@@ -219,7 +219,7 @@ func (buh *blobUploadHandler) PutBlobUploadComplete(w http.ResponseWriter, r *ht
 	}
 
 	if err := copyFullPayload(buh, w, r, buh.Upload, -1, "blob PUT"); err != nil {
-		buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithDetail(err.Error()))
+		buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to write blob PUT payload: "+err.Error()).WithDetail(err.Error()))
 		return
 	}
 
@@ -247,7 +247,7 @@ func (buh *blobUploadHandler) PutBlobUploadComplete(w http.ResponseWriter, r *ht
 				buh.Errors = append(buh.Errors, v2.ErrorCodeBlobUploadInvalid.WithDetail(err))
 			default:
 				dcontext.GetLogger(buh).Errorf("unknown error completing upload: %v", err)
-				buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+				buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to commit blob upload to storage: "+err.Error()).WithDetail(err))
 			}
 
 		}
@@ -261,7 +261,7 @@ func (buh *blobUploadHandler) PutBlobUploadComplete(w http.ResponseWriter, r *ht
 		return
 	}
 	if err := buh.writeBlobCreatedHeaders(w, desc); err != nil {
-		buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+		buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to write blob created headers: "+err.Error()).WithDetail(err))
 		return
 	}
 }
@@ -276,7 +276,7 @@ func (buh *blobUploadHandler) CancelBlobUpload(w http.ResponseWriter, r *http.Re
 	w.Header().Set("Docker-Upload-UUID", buh.UUID)
 	if err := buh.Upload.Cancel(buh); err != nil {
 		dcontext.GetLogger(buh).Errorf("error encountered canceling upload: %v", err)
-		buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+		buh.Errors = append(buh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to cancel blob upload session: "+err.Error()).WithDetail(err))
 	}
 
 	w.WriteHeader(http.StatusNoContent)

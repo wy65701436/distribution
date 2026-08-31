@@ -61,14 +61,14 @@ func (bh *blobHandler) GetBlob(w http.ResponseWriter, r *http.Request) {
 		if err == distribution.ErrBlobUnknown {
 			bh.Errors = append(bh.Errors, v2.ErrorCodeBlobUnknown.WithDetail(bh.Digest))
 		} else {
-			bh.Errors = append(bh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+			bh.Errors = append(bh.Errors, toErrcodeErrors(err)...)
 		}
 		return
 	}
 
 	if err := blobs.ServeBlob(bh, w, r, desc.Digest); err != nil {
 		context.GetLogger(bh).Debugf("unexpected error getting blob HTTP handler: %v", err)
-		bh.Errors = append(bh.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+		bh.Errors = append(bh.Errors, toErrcodeErrors(err)...)
 		return
 	}
 }
@@ -88,7 +88,7 @@ func (bh *blobHandler) DeleteBlob(w http.ResponseWriter, r *http.Request) {
 			bh.Errors = append(bh.Errors, v2.ErrorCodeBlobUnknown)
 			return
 		default:
-			bh.Errors = append(bh.Errors, err)
+			bh.Errors = append(bh.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to delete blob from storage: "+err.Error()).WithDetail(bh.Digest))
 			context.GetLogger(bh).Errorf("Unknown error deleting blob: %s", err.Error())
 			return
 		}

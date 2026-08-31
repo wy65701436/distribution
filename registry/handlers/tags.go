@@ -42,7 +42,7 @@ func (th *tagsHandler) GetTags(w http.ResponseWriter, r *http.Request) {
 		case errcode.Error:
 			th.Errors = append(th.Errors, err)
 		default:
-			th.Errors = append(th.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+			th.Errors = append(th.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to retrieve tags for repository: "+err.Error()).WithDetail(err))
 		}
 		return
 	}
@@ -54,7 +54,7 @@ func (th *tagsHandler) GetTags(w http.ResponseWriter, r *http.Request) {
 		Name: th.Repository.Named().Name(),
 		Tags: tags,
 	}); err != nil {
-		th.Errors = append(th.Errors, errcode.ErrorCodeUnknown.WithDetail(err))
+		th.Errors = append(th.Errors, errcode.ErrorCodeUnknown.WithMessage("failed to encode tags response: "+err.Error()).WithDetail(err))
 		return
 	}
 }

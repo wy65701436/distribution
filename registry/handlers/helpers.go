@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	dcontext "github.com/docker/distribution/context"
+	"github.com/docker/distribution/registry/api/errcode"
 )
 
 // closeResources closes all the provided resources after running the target
@@ -63,4 +64,21 @@ func copyFullPayload(ctx context.Context, responseWriter http.ResponseWriter, r 
 	}
 
 	return nil
+}
+
+// toErrcodeErrors converts a standard error or errcode type into an errcode.Errors slice.
+func toErrcodeErrors(err error) errcode.Errors {
+	if err == nil {
+		return nil
+	}
+	switch err := err.(type) {
+	case errcode.Errors:
+		return err
+	case errcode.Error:
+		return errcode.Errors{err}
+	case errcode.ErrorCode:
+		return errcode.Errors{err}
+	default:
+		return errcode.Errors{errcode.ErrorCodeUnknown.WithDetail(err)}
+	}
 }
